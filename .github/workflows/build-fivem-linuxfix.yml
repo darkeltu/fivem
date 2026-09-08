@@ -1,0 +1,45 @@
+name: Build FiveM Linux Fix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      PROGRAM: five
+    steps:
+      - name: Checkout
+        shell: bash
+        run: |
+          ROOT="C:\b"
+          ROOT_REPO="$ROOT/five"
+          ROOT_DEP="$ROOT/dep"
+          echo "ROOT_REPO=$ROOT_REPO" >> "$GITHUB_ENV"
+          echo "ROOT_DEP=$ROOT_DEP" >> "$GITHUB_ENV"
+          echo "JOB_SLOTS=4" >> "$GITHUB_ENV"
+          mkdir -p "$ROOT_REPO"
+          cd "$ROOT_REPO"
+          git init .
+          git config core.symlinks true
+          git remote add origin https://github.com/darkeltu/fivem.git
+          git pull origin master --depth=1
+          git submodule update --jobs=4 --init --depth=1
+
+      - name: Build FiveM
+        shell: bash
+        run: |
+          cd "$ROOT_REPO"
+          chmod +x .github/workflows/ci/build_windows.sh
+          .github/workflows/ci/build_windows.sh "$ROOT_DEP" 4
+
+      - name: Upload CoreRT
+        uses: actions/upload-artifact@v4
+        with:
+          name: FiveM-LinuxFix-CoreRT
+          path: C:\b\five\**\CoreRT.dll
+          if-no-files-found: error
